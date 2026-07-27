@@ -514,6 +514,66 @@ const esc  = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').repla
 const today= () => new Date().toISOString().split('T')[0];
 const fmtD = d => new Date(d+'T12:00:00').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
 
+/* ═══════════ DEFAULT PROGRAM TEMPLATES ═══════════ */
+/* Seeded once from Workout_Program_Builder.xlsx (Client Program tab, Days 1-5). */
+const DEFAULT_TEMPLATES = [
+  { name: 'Day 1', exercises: [
+    { name: 'Incline Press',               defaultSets: 3, defaultReps: 6  },
+    { name: 'Pec Fly',                     defaultSets: 3, defaultReps: 8  },
+    { name: 'Cable Lateral Raise',         defaultSets: 2, defaultReps: 8  },
+    { name: 'Dumbbell Lateral Raise',      defaultSets: 2, defaultReps: 8  },
+    { name: 'Triceps Extension',           defaultSets: 2, defaultReps: 8  },
+    { name: 'Overhead Triceps Extension',  defaultSets: 2, defaultReps: 8  },
+  ]},
+  { name: 'Day 2', exercises: [
+    { name: 'Lat Pulldown',   defaultSets: 3, defaultReps: 8  },
+    { name: 'Adducted Row',   defaultSets: 3, defaultReps: 8  },
+    { name: 'Abducted Row',   defaultSets: 2, defaultReps: 8  },
+    { name: 'Bicep Curl',     defaultSets: 2, defaultReps: 8  },
+    { name: 'Hammer Curl',    defaultSets: 2, defaultReps: 8  },
+    { name: 'Face Pull',      defaultSets: 2, defaultReps: 10 },
+  ]},
+  { name: 'Day 3', exercises: [
+    { name: 'Bulgarian Split Squat',  defaultSets: 2, defaultReps: 6  },
+    { name: 'Romanian Deadlift',      defaultSets: 2, defaultReps: 8  },
+    { name: 'Leg Extension',          defaultSets: 2, defaultReps: 8  },
+    { name: 'Leg Curl',               defaultSets: 2, defaultReps: 8  },
+    { name: 'Standing Calf Raise',    defaultSets: 2, defaultReps: 10 },
+  ]},
+  { name: 'Day 4', exercises: [
+    { name: 'Dumbbell Lateral Raise', defaultSets: 2, defaultReps: 8  },
+    { name: 'Incline Press',          defaultSets: 2, defaultReps: 6  },
+    { name: 'Lat Pulldown',           defaultSets: 2, defaultReps: 8  },
+    { name: 'Face Pull',              defaultSets: 2, defaultReps: 10 },
+    { name: 'Triceps Extension',      defaultSets: 2, defaultReps: 8  },
+    { name: 'Hammer Curl',            defaultSets: 2, defaultReps: 8  },
+  ]},
+  { name: 'Day 5', exercises: [
+    { name: 'Bulgarian Split Squat',  defaultSets: 2, defaultReps: 6  },
+    { name: 'Romanian Deadlift',      defaultSets: 2, defaultReps: 8  },
+    { name: 'Leg Extension',          defaultSets: 2, defaultReps: 8  },
+    { name: 'Leg Curl',               defaultSets: 2, defaultReps: 8  },
+    { name: 'Standing Calf Raise',    defaultSets: 2, defaultReps: 10 },
+  ]},
+];
+
+function seedDefaultTemplates() {
+  if (localStorage.getItem('lift_seeded_v1')) return; // only ever seed once
+  localStorage.setItem('lift_seeded_v1', '1');
+  const existing = DB.tpl;
+  const existingNames = new Set(existing.map(t => t.name));
+  const toAdd = DEFAULT_TEMPLATES
+    .filter(t => !existingNames.has(t.name))
+    .map(t => ({
+      id: uid(),
+      name: t.name,
+      exercises: t.exercises.map(e => ({
+        id: uid(), name: e.name, defaultSets: e.defaultSets, defaultReps: e.defaultReps
+      }))
+    }));
+  if (toAdd.length) DB.tpl = existing.concat(toAdd);
+}
+
 /* ═══════════ NAV ═══════════ */
 let curPage = 'home';
 function nav(page) {
@@ -1037,7 +1097,7 @@ function exportCSV() {
       });
     });
   });
-  const csv = rows.map(r=>r.map(c=>{ const s=String(c); return (s.includes(',')||s.includes('"')||s.includes('\n'))?`"${s.replace(/"/g,'""')}"`+s:s; }).join(',')).join('\r\n');
+  const csv = rows.map(r=>r.map(c=>{ const s=String(c); return (s.includes(',')||s.includes('"')||s.includes('\n'))?`"${s.replace(/"/g,'""')}"`:s; }).join(',')).join('\r\n');
   const blob = new Blob(['﻿'+csv], {type:'text/csv;charset=utf-8'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a'); a.href=url; a.download=`lift-${today()}.csv`; a.click();
@@ -1053,6 +1113,7 @@ function exportJSON() {
 }
 
 /* ═══════════ INIT ═══════════ */
+seedDefaultTemplates();
 renderHome();
 if (DB.active) {
   _timerStart = DB.active.startedAt;
